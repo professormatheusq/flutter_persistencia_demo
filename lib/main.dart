@@ -6,19 +6,34 @@ import 'firebase_page.dart';
 import 'supabase_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializar Firebase para persistência em nuvem
-  await Firebase.initializeApp();
+  try {
+    // Inicializar Firebase para persistência em nuvem
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('Firebase inicializado com sucesso!');
+  } catch (e) {
+    print('Erro ao inicializar Firebase: $e');
+    // Continue mesmo se o Firebase falhar - outras funcionalidades ainda funcionarão
+  }
 
-  // Inicializar Supabase (alternativa open-source ao Firebase)
-  await Supabase.initialize(
-    url: 'https://xfecnhxjchfdsbfeaatg.supabase.co',
-    anonKey:
-        '<prefer publishable key instead of anon key for mobile and desktop apps>',
-  );
+  try {
+    // Inicializar Supabase (alternativa open-source ao Firebase)
+    await Supabase.initialize(
+      url: 'https://xfecnhxjchfdsbfeaatg.supabase.co',
+      anonKey:
+          '<prefer publishable key instead of anon key for mobile and desktop apps>',
+    );
+    print('Supabase inicializado com sucesso!');
+  } catch (e) {
+    print('Erro ao inicializar Supabase: $e');
+    // Continue mesmo se o Supabase falhar - outras funcionalidades ainda funcionarão
+  }
 
   runApp(MyApp());
 }
