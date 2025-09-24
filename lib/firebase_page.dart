@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FirebasePage extends StatelessWidget {
-  FirebasePage({super.key});
+  const FirebasePage({super.key});
 
   FirebaseFirestore? get db {
     try {
