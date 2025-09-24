@@ -59,10 +59,10 @@ class _SQLitePageState extends State<SQLitePage> {
 
   Future<void> _initDatabase() async {
     setState(() => _isLoading = true);
-    
+
     final databasePath = await getDatabasesPath();
     final path = join(databasePath, 'tarefas_demo.db');
-    
+
     _database = await openDatabase(
       path,
       version: 1,
@@ -77,28 +77,28 @@ class _SQLitePageState extends State<SQLitePage> {
         ''');
       },
     );
-    
+
     await _loadTarefas();
     setState(() => _isLoading = false);
   }
 
   Future<void> _loadTarefas() async {
     if (_database == null) return;
-    
+
     final List<Map<String, dynamic>> maps = await _database!.query(
-      'tarefas', 
-      orderBy: 'id DESC'
+      'tarefas',
+      orderBy: 'id DESC',
     );
-    
+
     setState(() {
       _tarefas = maps.map((map) => Tarefa.fromMap(map)).toList();
     });
   }
 
-  Future<void> _addTarefa() async {
+  Future<void> _addTarefa(BuildContext context) async {
     if (_database == null) return;
     if (_nomeController.text.trim().isEmpty) {
-      _showMessage('Digite o nome da tarefa');
+      _showMessage('Digite o nome da tarefa', context);
       return;
     }
 
@@ -111,38 +111,41 @@ class _SQLitePageState extends State<SQLitePage> {
     _nomeController.clear();
     _descricaoController.clear();
     await _loadTarefas();
-    _showMessage('Tarefa adicionada!');
+    _showMessage('Tarefa adicionada!', context);
   }
 
-  Future<void> _toggleTarefa(Tarefa tarefa) async {
+  Future<void> _toggleTarefa(Tarefa tarefa, BuildContext context) async {
     if (_database == null || tarefa.id == null) return;
-    
+
     await _database!.update(
       'tarefas',
       {'concluida': tarefa.concluida ? 0 : 1},
       where: 'id = ?',
       whereArgs: [tarefa.id],
     );
-    
-    await _loadTarefas();
-    _showMessage(tarefa.concluida ? 'Tarefa reaberta!' : 'Tarefa concluída!');
-  }
 
-  Future<void> _deleteTarefa(int id) async {
-    if (_database == null) return;
-    
-    await _database!.delete('tarefas', where: 'id = ?', whereArgs: [id]);
     await _loadTarefas();
-    _showMessage('Tarefa removida!');
-  }
-
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+    _showMessage(
+      tarefa.concluida ? 'Tarefa reaberta!' : 'Tarefa concluída!',
+      context,
     );
   }
 
-  void _confirmDelete(Tarefa tarefa) {
+  Future<void> _deleteTarefa(int id, BuildContext context) async {
+    if (_database == null) return;
+
+    await _database!.delete('tarefas', where: 'id = ?', whereArgs: [id]);
+    await _loadTarefas();
+    _showMessage('Tarefa removida!', context);
+  }
+
+  void _showMessage(String message, BuildContext context) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _confirmDelete(Tarefa tarefa, BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext ctx) => AlertDialog(
@@ -156,7 +159,7 @@ class _SQLitePageState extends State<SQLitePage> {
           ElevatedButton(
             onPressed: () {
               Navigator.of(ctx).pop();
-              if (tarefa.id != null) _deleteTarefa(tarefa.id!);
+              if (tarefa.id != null) _deleteTarefa(tarefa.id!, context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: const Text('Excluir'),
@@ -200,13 +203,7 @@ class _SQLitePageState extends State<SQLitePage> {
             color: color,
           ),
         ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
     );
   }
@@ -287,7 +284,7 @@ class _SQLitePageState extends State<SQLitePage> {
                 ),
                 const SizedBox(height: 15),
                 ElevatedButton.icon(
-                  onPressed: _addTarefa,
+                  onPressed: () => _addTarefa(context),
                   icon: const Icon(Icons.add),
                   label: const Text('Adicionar Tarefa'),
                   style: ElevatedButton.styleFrom(
@@ -308,82 +305,96 @@ class _SQLitePageState extends State<SQLitePage> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _tarefas.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.task_alt, size: 64, color: Colors.grey[400]),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Nenhuma tarefa encontrada',
-                              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-                            ),
-                            Text(
-                              'Adicione uma nova tarefa acima',
-                              style: TextStyle(color: Colors.grey[500]),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.task_alt, size: 64, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Nenhuma tarefa encontrada',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                          ),
                         ),
-                      )
-                    : ListView.builder(
-                        itemCount: _tarefas.length,
-                        itemBuilder: (context, index) {
-                          final tarefa = _tarefas[index];
-                          return Card(
-                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                            child: ListTile(
-                              leading: Checkbox(
-                                value: tarefa.concluida,
-                                onChanged: (_) => _toggleTarefa(tarefa),
-                              ),
-                              title: Text(
-                                tarefa.nome,
-                                style: TextStyle(
-                                  decoration: tarefa.concluida
-                                      ? TextDecoration.lineThrough
-                                      : null,
-                                  fontWeight: FontWeight.w500,
+                        Text(
+                          'Adicione uma nova tarefa acima',
+                          style: TextStyle(color: Colors.grey[500]),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _tarefas.length,
+                    itemBuilder: (context, index) {
+                      final tarefa = _tarefas[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        child: ListTile(
+                          leading: Checkbox(
+                            value: tarefa.concluida,
+                            onChanged: (_) => _toggleTarefa(tarefa, context),
+                          ),
+                          title: Text(
+                            tarefa.nome,
+                            style: TextStyle(
+                              decoration: tarefa.concluida
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          subtitle: tarefa.descricao.isNotEmpty
+                              ? Text(
+                                  tarefa.descricao,
+                                  style: TextStyle(
+                                    decoration: tarefa.concluida
+                                        ? TextDecoration.lineThrough
+                                        : null,
+                                  ),
+                                )
+                              : null,
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: tarefa.concluida
+                                      ? Colors.green
+                                      : Colors.orange,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  tarefa.concluida ? 'Concluída' : 'Pendente',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
-                              subtitle: tarefa.descricao.isNotEmpty
-                                  ? Text(
-                                      tarefa.descricao,
-                                      style: TextStyle(
-                                        decoration: tarefa.concluida
-                                            ? TextDecoration.lineThrough
-                                            : null,
-                                      ),
-                                    )
-                                  : null,
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: tarefa.concluida ? Colors.green : Colors.orange,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      tarefa.concluida ? 'Concluída' : 'Pendente',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () => _confirmDelete(tarefa),
-                                  ),
-                                ],
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () =>
+                                    _confirmDelete(tarefa, context),
                               ),
-                            ),
-                          );
-                        },
-                      ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -400,30 +411,45 @@ class _SQLitePageState extends State<SQLitePage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('🎯 Quando usar:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                '🎯 Quando usar:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               Text('• Dados estruturados complexos'),
               Text('• Relacionamentos entre entidades'),
               Text('• Consultas SQL avançadas'),
               Text('• Apps que funcionam offline'),
               SizedBox(height: 10),
-              Text('💪 Recursos demonstrados:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                '💪 Recursos demonstrados:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               Text('• CRUD completo (Create, Read, Update, Delete)'),
               Text('• Modelo de dados estruturado'),
               Text('• Interface reativa'),
               Text('• Validações básicas'),
               SizedBox(height: 10),
-              Text('🔧 Características técnicas:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                '🔧 Características técnicas:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               Text('• Banco relacional SQL'),
               Text('• Suporte a transações'),
               Text('• Consultas otimizadas'),
               Text('• Schema versionado'),
               SizedBox(height: 10),
-              Text('⚡ Performance:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                '⚡ Performance:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               Text('• Acesso rápido a dados locais'),
               Text('• Suporte a índices'),
               Text('• Consultas complexas eficientes'),
               SizedBox(height: 10),
-              Text('📊 Exemplo prático:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                '📊 Exemplo prático:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               Text('• Sistema de tarefas completo'),
               Text('• Estados (pendente/concluída)'),
               Text('• Contadores automáticos'),
