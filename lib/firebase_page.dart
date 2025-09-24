@@ -38,10 +38,7 @@ class FirebasePage extends StatelessWidget {
 
     try {
       final snapshot = await db!.collection('usuarios').get();
-      return snapshot.docs.map((e) => {
-        'id': e.id,
-        ...e.data()
-      }).toList();
+      return snapshot.docs.map((e) => {'id': e.id, ...e.data()}).toList();
     } catch (e) {
       _showError(context, 'Erro ao listar usuários: $e');
       return [];
@@ -65,9 +62,9 @@ class FirebasePage extends StatelessWidget {
   }
 
   void _showMessage(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -111,7 +108,7 @@ class FirebasePage extends StatelessWidget {
               ),
             ),
             SizedBox(height: 24),
-            
+
             ElevatedButton.icon(
               onPressed: () => _addUser(context),
               icon: Icon(Icons.person_add),
@@ -122,9 +119,9 @@ class FirebasePage extends StatelessWidget {
                 padding: EdgeInsets.symmetric(vertical: 16),
               ),
             ),
-            
+
             SizedBox(height: 16),
-            
+
             ElevatedButton.icon(
               onPressed: () async {
                 final users = await _getUsers(context);
@@ -136,11 +133,19 @@ class FirebasePage extends StatelessWidget {
                       content: SingleChildScrollView(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
-                          children: users.map((user) => ListTile(
-                            leading: Icon(Icons.person),
-                            title: Text(user['nome'] ?? 'Nome não informado'),
-                            subtitle: Text(user['email'] ?? 'Email não informado'),
-                          )).toList(),
+                          children: users
+                              .map(
+                                (user) => ListTile(
+                                  leading: Icon(Icons.person),
+                                  title: Text(
+                                    user['nome'] ?? 'Nome não informado',
+                                  ),
+                                  subtitle: Text(
+                                    user['email'] ?? 'Email não informado',
+                                  ),
+                                ),
+                              )
+                              .toList(),
                         ),
                       ),
                       actions: [
@@ -161,9 +166,9 @@ class FirebasePage extends StatelessWidget {
                 padding: EdgeInsets.symmetric(vertical: 16),
               ),
             ),
-            
+
             SizedBox(height: 24),
-            
+
             // Informações adicionais
             Expanded(
               child: Container(
